@@ -26,7 +26,7 @@ interface ConversationProps {
 }
 
 export function Conversation({ requestId, requestStatus, canClose, onClose }: ConversationProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMsg, setNewMsg] = useState('');
@@ -124,7 +124,7 @@ export function Conversation({ requestId, requestStatus, canClose, onClose }: Co
           </p>
         ) : (
           messages.map((msg) => {
-            const isMe = msg.sender_id === user?.id;
+            const isMe = msg.sender_id === profile?.id;
             return (
               <div key={msg.id} className={cn('flex gap-2', isMe ? 'flex-row-reverse' : '')}>
                 <Avatar
