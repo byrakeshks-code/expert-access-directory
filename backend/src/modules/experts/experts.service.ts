@@ -249,12 +249,14 @@ export class ExpertsService {
         .from('verification-docs')
         .getPublicUrl(filePath);
 
+      const publicFileUrl = this.supabaseService.toPublicUrl(urlData.publicUrl);
+
       const { data, error } = await this.db
         .from('verification_documents')
         .insert({
           expert_id: expert.id,
           document_type: documentType,
-          file_url: urlData.publicUrl,
+          file_url: publicFileUrl,
         })
         .select()
         .single();

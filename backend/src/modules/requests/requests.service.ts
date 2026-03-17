@@ -777,6 +777,8 @@ export class RequestsService {
         .from('payment-receipts')
         .getPublicUrl(filePath);
 
+      const publicReceiptUrl = this.supabaseService.toPublicUrl(urlData.publicUrl);
+
       const { data, error } = await this.db
         .from('request_messages')
         .insert({
@@ -784,7 +786,7 @@ export class RequestsService {
           sender_id: userId,
           body: 'Payment receipt uploaded',
           message_type: 'payment_receipt',
-          attachment_url: urlData.publicUrl,
+          attachment_url: publicReceiptUrl,
           metadata: { file_name: safeName, file_type: file.mimetype, file_size: file.size },
         })
         .select('*, users:sender_id(full_name, avatar_url)')

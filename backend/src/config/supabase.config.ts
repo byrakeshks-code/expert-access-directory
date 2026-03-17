@@ -5,10 +5,18 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 @Injectable()
 export class SupabaseService {
   private serviceClient: SupabaseClient;
+  private internalUrl: string;
+  private publicUrl: string;
 
   constructor(private configService: ConfigService) {
+    this.internalUrl = this.configService.get<string>('SUPABASE_URL', '');
+    this.publicUrl = this.configService.get<string>(
+      'SUPABASE_PUBLIC_URL',
+      this.internalUrl,
+    );
+
     this.serviceClient = createClient(
-      this.configService.get<string>('SUPABASE_URL', ''),
+      this.internalUrl,
       this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY', ''),
       {
         auth: { autoRefreshToken: false, persistSession: false },
@@ -28,7 +36,7 @@ export class SupabaseService {
    */
   getClientForUser(accessToken: string): SupabaseClient {
     return createClient(
-      this.configService.get<string>('SUPABASE_URL', ''),
+      this.internalUrl,
       this.configService.get<string>('SUPABASE_ANON_KEY', ''),
       {
         global: {
@@ -37,5 +45,17 @@ export class SupabaseService {
         auth: { autoRefreshToken: false, persistSession: false },
       },
     );
+  }
+
+  /**
+   * Rewrites an internal Supabase storage URL to the public-facing URL.
+   * In production the Supabase instance is behind an nginx reverse-proxy,
+   * so URLs returned by getPublicUrl() contain http://127.0.0.1:54321
+   * which is unreachable from browsers.
+   */
+  toPublicUrl(internalUrl: string): string {
+    if (!internalUrl) return internalUrl;
+    if (this.internalUrl === this.publicUrl) return internalUrl;
+    return internalUrl.replace(this.internalUrl, this.publicUrl);
   }
 }

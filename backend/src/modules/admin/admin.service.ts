@@ -813,7 +813,7 @@ export class AdminService {
     return {
       path: filePath,
       bucket,
-      url: urlData.publicUrl,
+      url: this.supabaseService.toPublicUrl(urlData.publicUrl),
       name: safeName,
       size: file.size,
       type: file.mimetype,
@@ -832,7 +832,6 @@ export class AdminService {
 
     if (error) throw new BadRequestException(`List failed: ${error.message}`);
 
-    // Enrich with public URLs
     const files = (data || [])
       .filter((f) => f.name !== '.emptyFolderPlaceholder')
       .map((f) => {
@@ -842,7 +841,7 @@ export class AdminService {
           ...f,
           path: fullPath,
           bucket,
-          url: urlData.publicUrl,
+          url: this.supabaseService.toPublicUrl(urlData.publicUrl),
         };
       });
 
@@ -857,7 +856,7 @@ export class AdminService {
     if (error) throw new BadRequestException(`Rename failed: ${error.message}`);
 
     const { data: urlData } = this.db.storage.from(bucket).getPublicUrl(newPath);
-    return { path: newPath, url: urlData.publicUrl };
+    return { path: newPath, url: this.supabaseService.toPublicUrl(urlData.publicUrl) };
   }
 
   async deleteMedia(bucket: string, paths: string[]) {
@@ -871,6 +870,6 @@ export class AdminService {
 
   async getPublicUrl(bucket: string, path: string) {
     const { data } = this.db.storage.from(bucket).getPublicUrl(path);
-    return { url: data.publicUrl };
+    return { url: this.supabaseService.toPublicUrl(data.publicUrl) };
   }
 }

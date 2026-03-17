@@ -79,13 +79,14 @@ export class UsersService {
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Update user record with avatar URL
+      const publicAvatarUrl = this.supabaseService.toPublicUrl(urlData.publicUrl);
+
       await supabase
         .from('users')
-        .update({ avatar_url: urlData.publicUrl })
+        .update({ avatar_url: publicAvatarUrl })
         .eq('id', userId);
 
-      return { avatar_url: urlData.publicUrl };
+      return { avatar_url: publicAvatarUrl };
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException('Failed to upload avatar');
