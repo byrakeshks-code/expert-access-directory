@@ -8,6 +8,7 @@ import { LoggerModule } from 'nestjs-pino';
 
 import { envValidationSchema } from './config/env.validation';
 import { SupabaseModule } from './config/supabase.module';
+import { FirebaseAdminModule } from './config/firebase-admin.module';
 import { AppController } from './app.controller';
 import { GlobalExceptionFilter } from './common/filters';
 import { TransformInterceptor } from './common/interceptors';
@@ -71,6 +72,7 @@ import { JobsModule } from './jobs/jobs.module';
 
     // Global modules
     SupabaseModule,
+    FirebaseAdminModule,
 
     // Feature modules
     AuthModule,

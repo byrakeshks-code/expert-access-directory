@@ -1,7 +1,24 @@
+import { firebaseAuth } from './firebase';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 15_000;
+
+async function getFreshToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  const currentUser = firebaseAuth.currentUser;
+  if (currentUser) {
+    try {
+      const token = await currentUser.getIdToken(false);
+      localStorage.setItem('admin_token', token);
+      return token;
+    } catch {
+      // Fall back to stored token
+    }
+  }
+  return localStorage.getItem('admin_token');
+}
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -25,7 +42,7 @@ async function request<T>(
   options: RequestInit = {},
   retriesLeft = MAX_RETRIES,
 ): Promise<T> {
-  const token = getToken();
+  const token = await getFreshToken();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

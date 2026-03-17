@@ -6,18 +6,23 @@ declare global {
   }
 }
 
-interface PaymentOrder {
+export interface PaymentOrder {
+  payment_id: string;
+  gateway: 'razorpay' | 'stripe' | 'demo';
   order_id: string;
-  gateway: 'razorpay' | 'stripe';
   amount_minor: number;
   currency: string;
-  razorpay_order_id?: string;
-  stripe_client_secret?: string;
+  demo?: boolean;
+  client_data?: {
+    key_id?: string;
+    order_id?: string;
+    amount?: number;
+    currency?: string;
+    client_secret?: string;
+    payment_intent_id?: string;
+  };
 }
 
-/**
- * Load Razorpay script dynamically
- */
 function loadRazorpayScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.Razorpay) {
@@ -32,16 +37,10 @@ function loadRazorpayScript(): Promise<void> {
   });
 }
 
-/**
- * Create a payment order via the backend
- */
 export async function createPaymentOrder(expertId: string): Promise<PaymentOrder> {
   return api.post<PaymentOrder>('/payments/access/create-order', { expert_id: expertId });
 }
 
-/**
- * Open Razorpay checkout
- */
 export async function openRazorpayCheckout(
   order: PaymentOrder,
   userEmail: string,
@@ -51,12 +50,12 @@ export async function openRazorpayCheckout(
 
   return new Promise((resolve, reject) => {
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: order.amount_minor,
-      currency: order.currency,
-      order_id: order.razorpay_order_id,
-      name: 'Expert Access Directory',
-      description: 'Expert Access Fee',
+      key: order.client_data?.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: order.client_data?.amount ?? order.amount_minor,
+      currency: order.client_data?.currency ?? order.currency,
+      order_id: order.client_data?.order_id ?? order.order_id,
+      name: 'Loop-Ex',
+      description: 'Loop Ex - Expert Access Fee',
       prefill: { email: userEmail, name: userName },
       theme: { color: '#4F46E5' },
       handler: (response: any) => {
@@ -72,17 +71,14 @@ export async function openRazorpayCheckout(
   });
 }
 
-/**
- * Verify payment with backend
- */
 export async function verifyPayment(
-  orderId: string,
-  paymentId: string,
-  signature: string,
+  gatewayOrderId: string,
+  gatewayPaymentId: string,
+  gatewaySignature: string,
 ): Promise<any> {
   return api.post('/payments/access/verify', {
-    order_id: orderId,
-    payment_id: paymentId,
-    signature,
+    gateway_order_id: gatewayOrderId,
+    gateway_payment_id: gatewayPaymentId,
+    gateway_signature: gatewaySignature,
   });
 }

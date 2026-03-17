@@ -4,21 +4,21 @@ import { Providers } from '@/components/providers';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Expert Access Directory — Find the Right Expert',
-    template: '%s | Expert Access',
+    default: 'Loop Ex — Find the Right Expert',
+    template: '%s | Loop Ex',
   },
   description: 'Find verified experts for your query. Secure payments, guaranteed responses, and trusted professionals.',
   keywords: ['expert', 'consultation', 'directory', 'professional advice', 'find expert'],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'),
   openGraph: {
     type: 'website',
-    title: 'Expert Access Directory',
+    title: 'Loop Ex',
     description: 'Find the right expert for your query. Verified professionals, secure payments.',
-    siteName: 'Expert Access Directory',
+    siteName: 'Loop Ex',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Expert Access Directory',
+    title: 'Loop Ex',
     description: 'Find the right expert for your query.',
   },
   manifest: '/manifest.json',

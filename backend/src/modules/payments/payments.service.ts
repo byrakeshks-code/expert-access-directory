@@ -100,9 +100,9 @@ export class PaymentsService {
 
       const { gateway, name: gatewayName } = this.getGateway(user?.country_code || 'IN');
 
-      // Create gateway order
+      // Create gateway order (Razorpay/Stripe expect amounts in minor units i.e. paise/cents)
       const order = await gateway.createOrder(
-        expert.access_fee_minor,
+        expert.access_fee_minor * 100,
         expert.access_fee_currency,
         { user_id: userId, expert_id: dto.expert_id },
       );

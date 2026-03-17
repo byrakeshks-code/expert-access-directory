@@ -1,6 +1,6 @@
 {
-  "name": "Expert Access Directory",
-  "short_name": "Expert Access",
+  "name": "Loop Ex",
+  "short_name": "Loop Ex",
   "description": "Find the right expert for your problem",
   "start_url": "/",
   "display": "standalone",

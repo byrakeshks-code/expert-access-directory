@@ -51,9 +51,9 @@ async function bootstrap() {
 
   // Swagger
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Expert Access Directory API')
+    .setTitle('Loop Ex API')
     .setDescription(
-      'REST API for the Expert Access Directory Platform — structured access to verified professionals.',
+      'REST API for the Loop Ex Platform — structured access to verified professionals.',
     )
     .setVersion('1.0')
     .addBearerAuth()

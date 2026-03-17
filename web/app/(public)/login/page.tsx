@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input, PasswordInput } from '@/components/ui/input';
 import { PageTransition } from '@/components/shared/page-transition';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mail, Lock, Phone, Sparkles, Shield, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Phone, Sparkles, Shield, CheckCircle, User } from 'lucide-react';
 
 type AuthMode = 'email' | 'phone';
 
@@ -21,8 +21,14 @@ export default function LoginPage() {
   );
 }
 
+function isProfileIncomplete(fullName: string | undefined | null): boolean {
+  if (!fullName || fullName.trim() === '') return true;
+  if (/^\+?\d[\d\s-]{6,}$/.test(fullName.trim())) return true;
+  return false;
+}
+
 function LoginPageContent() {
-  const { login, loginWithGoogle, loginWithPhone, verifyOtp, profile, user, isLoading: authLoading } = useAuth();
+  const { login, loginWithGoogle, loginWithPhone, verifyOtp, setupRecaptcha, updateUserProfile, profile, user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect');
@@ -30,18 +36,40 @@ function LoginPageContent() {
   const [mode, setMode] = useState<AuthMode>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+91');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const recaptchaInitialized = useRef(false);
+
+  const [showProfileCompletion, setShowProfileCompletion] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const phoneOtpVerifiedRef = useRef(false);
 
   useEffect(() => {
     if (!authLoading && user && profile) {
-      const dest = redirectParam || getRoleDashboard(profile.role);
-      router.replace(dest);
+      if (phoneOtpVerifiedRef.current && isProfileIncomplete(profile.full_name)) {
+        setShowProfileCompletion(true);
+        return;
+      }
+      if (!showProfileCompletion) {
+        const dest = redirectParam || getRoleDashboard(profile.role);
+        router.replace(dest);
+      }
     }
-  }, [authLoading, user, profile, redirectParam, router]);
+  }, [authLoading, user, profile, redirectParam, router, showProfileCompletion]);
+
+  useEffect(() => {
+    if (!recaptchaInitialized.current) {
+      const timer = setTimeout(() => {
+        setupRecaptcha('recaptcha-container');
+        recaptchaInitialized.current = true;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [setupRecaptcha]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +93,7 @@ function LoginPageContent() {
         await loginWithPhone(phone);
         setOtpSent(true);
       } else {
+        phoneOtpVerifiedRef.current = true;
         await verifyOtp(phone, otp);
       }
     } catch (err: any) {
@@ -79,6 +108,30 @@ function LoginPageContent() {
       await loginWithGoogle();
     } catch (err: any) {
       setError(err.message || 'Google login failed');
+    }
+  };
+
+  const handleProfileCompletion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!profileName.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const updateData: { full_name: string; email?: string } = { full_name: profileName.trim() };
+      if (profileEmail.trim()) {
+        updateData.email = profileEmail.trim();
+      }
+      await updateUserProfile(updateData);
+      setShowProfileCompletion(false);
+      const dest = redirectParam || getRoleDashboard(profile?.role);
+      router.replace(dest);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -98,9 +151,7 @@ function LoginPageContent() {
             transition={{ duration: 0.6 }}
             className="max-w-md"
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-8 shadow-lg shadow-primary/25">
-              <span className="text-white font-extrabold text-xl">EA</span>
-            </div>
+            <img src="/logo.png" alt="Loop Ex" className="w-14 h-14 rounded-2xl object-contain mb-8 shadow-lg shadow-primary/25" />
             <h2 className="text-3xl font-extrabold text-foreground leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Connect with verified experts
               <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> for any query</span>
@@ -135,92 +186,134 @@ function LoginPageContent() {
           >
             {/* Mobile-only logo */}
             <div className="text-center mb-8 lg:hidden">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/25">
-                <span className="text-white font-bold">EA</span>
-              </div>
+              <img src="/logo.png" alt="Loop Ex" className="w-12 h-12 rounded-xl object-contain mx-auto mb-4 shadow-lg shadow-primary/25" />
             </div>
 
-            <div className="text-center lg:text-left mb-8">
-              <h1 className="text-2xl font-extrabold text-foreground" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                Welcome back
-              </h1>
-              <p className="text-muted mt-1">Log in to your account</p>
-            </div>
-
-            <div className="bg-surface-elevated border border-border rounded-2xl p-6 sm:p-8 shadow-xl shadow-primary/5">
-              {/* Mode toggle */}
-              <div className="flex gap-0.5 p-1 bg-surface border border-border rounded-xl mb-6">
-                <button
-                  onClick={() => { setMode('email'); setError(''); }}
-                  className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                    mode === 'email' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-foreground'
-                  }`}
-                >
-                  Email
-                </button>
-                <button
-                  onClick={() => { setMode('phone'); setError(''); }}
-                  className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                    mode === 'phone' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-foreground'
-                  }`}
-                >
-                  Phone
-                </button>
-              </div>
-
-              {error && (
-                <div className="mb-4 px-4 py-3 bg-error-light border border-error/20 rounded-xl text-sm text-error">
-                  {error}
+            {showProfileCompletion ? (
+              <>
+                <div className="text-center lg:text-left mb-8">
+                  <h1 className="text-2xl font-extrabold text-foreground" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    Complete your profile
+                  </h1>
+                  <p className="text-muted mt-1">Tell us a bit about yourself</p>
                 </div>
-              )}
 
-              {mode === 'email' ? (
-                <form onSubmit={handleEmailLogin} className="space-y-4">
-                  <Input label="Email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} leftIcon={<Mail className="w-4 h-4" />} required />
-                  <PasswordInput label="Password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock className="w-4 h-4" />} required />
-                  <Button type="submit" isLoading={isLoading} className="w-full">Log in</Button>
-                </form>
-              ) : (
-                <form onSubmit={handlePhoneLogin} className="space-y-4">
-                  <Input label="Phone Number" type="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} leftIcon={<Phone className="w-4 h-4" />} disabled={otpSent} required />
-                  {otpSent && (
-                    <Input label="OTP" type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} required />
+                <div className="bg-surface-elevated border border-border rounded-2xl p-6 sm:p-8 shadow-xl shadow-primary/5">
+                  {error && (
+                    <div className="mb-4 px-4 py-3 bg-error-light border border-error/20 rounded-xl text-sm text-error">
+                      {error}
+                    </div>
                   )}
-                  <Button type="submit" isLoading={isLoading} className="w-full">{otpSent ? 'Verify OTP' : 'Send OTP'}</Button>
-                </form>
-              )}
+                  <form onSubmit={handleProfileCompletion} className="space-y-4">
+                    <Input
+                      label="Full Name"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      leftIcon={<User className="w-4 h-4" />}
+                      required
+                    />
+                    <Input
+                      label="Email (optional)"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      leftIcon={<Mail className="w-4 h-4" />}
+                    />
+                    <Button type="submit" isLoading={isLoading} className="w-full">
+                      Continue
+                    </Button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center lg:text-left mb-8">
+                  <h1 className="text-2xl font-extrabold text-foreground" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    Welcome back
+                  </h1>
+                  <p className="text-muted mt-1">Log in to your account</p>
+                </div>
 
-              <div className="flex items-center gap-3 my-6">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted font-medium">or</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
+                <div className="bg-surface-elevated border border-border rounded-2xl p-6 sm:p-8 shadow-xl shadow-primary/5">
+                  {/* Mode toggle */}
+                  <div className="flex gap-0.5 p-1 bg-surface border border-border rounded-xl mb-6">
+                    <button
+                      onClick={() => { setMode('email'); setError(''); }}
+                      className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                        mode === 'email' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-foreground'
+                      }`}
+                    >
+                      Email
+                    </button>
+                    <button
+                      onClick={() => { setMode('phone'); setError(''); }}
+                      className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                        mode === 'phone' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-foreground'
+                      }`}
+                    >
+                      Phone
+                    </button>
+                  </div>
 
-              <Button variant="outline" onClick={handleGoogleLogin} className="w-full">
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                Continue with Google
-              </Button>
+                  {error && (
+                    <div className="mb-4 px-4 py-3 bg-error-light border border-error/20 rounded-xl text-sm text-error">
+                      {error}
+                    </div>
+                  )}
 
-              <p className="text-center text-sm text-muted mt-6">
-                Don&apos;t have an account?{' '}
-                <Link href="/register" className="text-primary font-semibold hover:underline">Sign up</Link>
-              </p>
+                  {mode === 'email' ? (
+                    <form onSubmit={handleEmailLogin} className="space-y-4">
+                      <Input label="Email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} leftIcon={<Mail className="w-4 h-4" />} required />
+                      <PasswordInput label="Password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock className="w-4 h-4" />} required />
+                      <Button type="submit" isLoading={isLoading} className="w-full">Log in</Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handlePhoneLogin} className="space-y-4">
+                      <Input label="Phone Number" type="tel" placeholder="+919876543210" value={phone} onChange={(e) => setPhone(e.target.value)} leftIcon={<Phone className="w-4 h-4" />} disabled={otpSent} required />
+                      {otpSent && (
+                        <Input label="OTP" type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} required />
+                      )}
+                      <Button type="submit" isLoading={isLoading} className="w-full">{otpSent ? 'Verify OTP' : 'Send OTP'}</Button>
+                    </form>
+                  )}
 
-              <div className="mt-4 pt-4 border-t border-border text-center">
-                <p className="text-xs text-muted">Want to offer your expertise?</p>
-                <Link href="/register/expert" className="text-sm text-secondary font-semibold hover:underline">
-                  Sign up as an Expert
-                </Link>
-              </div>
-            </div>
+                  <div className="flex items-center gap-3 my-6">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted font-medium">or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <Button variant="outline" onClick={handleGoogleLogin} className="w-full">
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                    </svg>
+                    Continue with Google
+                  </Button>
+
+                  <p className="text-center text-sm text-muted mt-6">
+                    Don&apos;t have an account?{' '}
+                    <Link href="/register" className="text-primary font-semibold hover:underline">Sign up</Link>
+                  </p>
+
+                  <div className="mt-4 pt-4 border-t border-border text-center">
+                    <p className="text-xs text-muted">Want to offer your expertise?</p>
+                    <Link href="/register/expert" className="text-sm text-secondary font-semibold hover:underline">
+                      Sign up as an Expert
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
           </motion.div>
         </div>
       </div>
+      <div id="recaptcha-container" style={{ position: 'fixed', bottom: 0, left: 0, zIndex: -1 }} />
     </PageTransition>
   );
 }

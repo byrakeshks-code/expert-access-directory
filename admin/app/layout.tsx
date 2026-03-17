@@ -7,8 +7,8 @@ import { AdminShell } from '@/components/admin-shell';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Expert Access Directory — Admin',
-  description: 'Admin panel for the Expert Access Directory Platform',
+  title: 'Loop Ex — Admin',
+  description: 'Admin panel for the Loop Ex Platform',
 };
 
 export default function RootLayout({

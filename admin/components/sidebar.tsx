@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { firebaseAuth } from '@/lib/firebase';
 import {
   LayoutDashboard,
   Users,
@@ -37,7 +39,8 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await signOut(firebaseAuth); } catch { /* ignore */ }
     localStorage.removeItem('admin_token');
     window.location.href = '/login';
   };
@@ -45,7 +48,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 min-h-screen bg-gray-900 text-gray-100 flex flex-col">
       <div className="p-6 border-b border-gray-700">
-        <h1 className="text-lg font-bold tracking-tight">Expert Access</h1>
+        <h1 className="text-lg font-bold tracking-tight">Loop Ex</h1>
         <p className="text-xs text-gray-400 mt-1">Admin Panel</p>
       </div>
 

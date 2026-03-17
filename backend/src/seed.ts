@@ -7,7 +7,9 @@
  * Usage: npx ts-node src/seed.ts
  */
 
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import * as admin from 'firebase-admin';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 const SERVICE_ROLE_KEY =
@@ -17,6 +19,17 @@ const SERVICE_ROLE_KEY =
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
+
+// Firebase Admin for user creation
+const firebasePrivateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+const firebaseApp = admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID || 'loop-ex',
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
+    privateKey: firebasePrivateKey,
+  }),
+});
+const firebaseAuth = firebaseApp.auth();
 
 // ============================================================
 // User definitions — auth + public.users
@@ -138,55 +151,84 @@ async function seed() {
   // ----------------------------------------------------------
   // Step 1: Create auth users and public.users
   // ----------------------------------------------------------
-  console.log('[1/10] Creating auth users...');
+  console.log('[1/10] Creating Firebase auth users...');
   const userIds: Record<string, string> = {};
+  const firebaseUids: Record<string, string> = {};
 
   for (const u of USERS) {
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: u.email,
-      password: u.password,
-      email_confirm: true,
-      user_metadata: { full_name: u.full_name },
-    });
-
-    if (error) {
-      // User already exists — look up their ID instead of skipping
-      const { data: listData } = await supabase.auth.admin.listUsers();
-      const existingUser = listData?.users?.find((eu: any) => eu.email === u.email);
-      if (existingUser) {
-        userIds[u.email] = existingUser.id;
-        console.log(`  Existing: ${u.full_name} (${u.email}) → ${existingUser.id}`);
+    try {
+      const fbUser = await firebaseAuth.createUser({
+        email: u.email,
+        password: u.password,
+        displayName: u.full_name,
+        emailVerified: true,
+        ...(u.phone ? { phoneNumber: u.phone.replace(/-/g, '') } : {}),
+      });
+      await firebaseAuth.setCustomUserClaims(fbUser.uid, { role: 'authenticated' });
+      firebaseUids[u.email] = fbUser.uid;
+      console.log(`  Created: ${u.full_name} (${u.email}) → Firebase UID ${fbUser.uid}`);
+    } catch (err: any) {
+      if (err.code === 'auth/email-already-exists' || err.code === 'auth/phone-number-already-exists') {
+        try {
+          const existing = await firebaseAuth.getUserByEmail(u.email);
+          firebaseUids[u.email] = existing.uid;
+          console.log(`  Existing: ${u.full_name} (${u.email}) → Firebase UID ${existing.uid}`);
+        } catch {
+          console.error(`  Failed to find existing ${u.email}: ${err.message}`);
+        }
       } else {
-        console.error(`  Failed to create or find ${u.email}: ${error.message}`);
+        console.error(`  Failed to create ${u.email}: ${err.message}`);
       }
-      continue;
     }
-
-    userIds[u.email] = data.user.id;
-    console.log(`  Created: ${u.full_name} (${u.email}) → ${data.user.id}`);
   }
 
   // Insert/update public.users records
   console.log('\n[2/10] Creating public.users records...');
   let userCount = 0;
   for (const u of USERS) {
-    const id = userIds[u.email];
-    if (!id) continue;
+    const fbUid = firebaseUids[u.email];
+    if (!fbUid) continue;
 
-    const { error } = await supabase.from('users').upsert({
-      id,
-      role: u.role,
-      full_name: u.full_name,
-      email: u.email,
-      phone: u.phone,
-      country_code: u.country_code,
-      timezone: u.timezone,
-      preferred_lang: 'en',
-      is_active: u.is_active,
-    }, { onConflict: 'id' });
+    // Check if a row already exists for this firebase_uid
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('firebase_uid', fbUid)
+      .single();
 
-    if (error) console.error(`  Failed public.users for ${u.email}: ${error.message}`);
-    else userCount++;
+    if (existing) {
+      userIds[u.email] = existing.id;
+      await supabase.from('users').update({
+        role: u.role,
+        full_name: u.full_name,
+        email: u.email,
+        phone: u.phone,
+        country_code: u.country_code,
+        timezone: u.timezone,
+        preferred_lang: 'en',
+        is_active: u.is_active,
+      }).eq('id', existing.id);
+      userCount++;
+    } else {
+      const { data: newRow, error } = await supabase.from('users').insert({
+        firebase_uid: fbUid,
+        role: u.role,
+        full_name: u.full_name,
+        email: u.email,
+        phone: u.phone,
+        country_code: u.country_code,
+        timezone: u.timezone,
+        preferred_lang: 'en',
+        is_active: u.is_active,
+      }).select('id').single();
+
+      if (error) {
+        console.error(`  Failed public.users for ${u.email}: ${error.message}`);
+      } else {
+        userIds[u.email] = newRow!.id;
+        userCount++;
+      }
+    }
   }
   console.log(`  Upserted ${userCount} users`);
 
@@ -929,7 +971,7 @@ async function seed() {
   // ----------------------------------------------------------
   console.log('\n[10/11] Seeding additional platform config keys...');
   const newConfigKeys = [
-    { key: 'platform_name', value: '"Expert Access Directory"', description: 'Platform display name' },
+    { key: 'platform_name', value: '"Loop Ex"', description: 'Platform display name' },
     { key: 'platform_tagline', value: '"Find the right expert for your query"', description: 'Platform tagline / subtitle' },
     { key: 'support_email', value: '"support@expertaccess.dev"', description: 'Platform support email address' },
     { key: 'support_phone', value: '"+91-9000000000"', description: 'Platform support phone number' },

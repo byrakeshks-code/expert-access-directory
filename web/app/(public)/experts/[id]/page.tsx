@@ -143,7 +143,7 @@ export default function ExpertProfilePage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${expert?.full_name} - Expert Access`,
+          title: `${expert?.full_name} - Loop Ex`,
           text: expert?.headline,
           url: window.location.href,
         });

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { getSupabase } from '@/lib/supabase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { firebaseAuth } from '@/lib/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
@@ -47,34 +48,29 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
-      const supabase = getSupabase();
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { user } = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const token = await user.getIdToken();
+      localStorage.setItem('admin_token', token);
 
-      if (authError) {
-        setError(authError.message);
+      const userData = await api.get<{ role: string }>('/users/me');
+      const role = (userData as any)?.role ?? (userData as any)?.data?.role;
+
+      if (role !== 'admin') {
+        localStorage.removeItem('admin_token');
+        await signOut(firebaseAuth);
+        setError('Access denied. Admin credentials required.');
         return;
       }
 
-      if (data.session) {
-        localStorage.setItem('admin_token', data.session.access_token);
-
-        const user = await api.get<{ role: string }>('/users/me');
-        const role = (user as any)?.role ?? (user as any)?.data?.role;
-
-        if (role !== 'admin') {
-          localStorage.removeItem('admin_token');
-          await supabase.auth.signOut();
-          setError('Access denied. Admin credentials required.');
-          return;
-        }
-
-        router.push(redirectPath);
+      router.push(redirectPath);
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setError('Invalid email or password');
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('Login failed');
       }
-    } catch {
-      setError('Login failed');
     } finally {
       setLoading(false);
     }
@@ -88,7 +84,7 @@ function LoginPageContent() {
             Admin Login
           </h1>
           <p className="text-sm text-gray-500 text-center mt-2 mb-8">
-            Expert Access Directory
+            Loop Ex
           </p>
 
           <form onSubmit={handleLogin} className="space-y-4">

@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { SupabaseService } from '../../config/supabase.config';
+import { FirebaseAdminService } from '../../config/firebase-admin.config';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
@@ -18,6 +19,7 @@ export class SupabaseAuthGuard implements CanActivate {
     private reflector: Reflector,
     private configService: ConfigService,
     private supabaseService: SupabaseService,
+    private firebaseAdmin: FirebaseAdminService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -50,40 +52,50 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     try {
+      const decoded = await this.firebaseAdmin.verifyIdToken(token);
+      const firebaseUid = decoded.uid;
+
       const supabase = this.supabaseService.getServiceClient();
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser(token);
 
-      if (error || !user) {
-        throw new UnauthorizedException('Invalid or expired token');
-      }
-
-      // Fetch the user's role from public.users
+      // Look up user by firebase_uid
       let { data: profile } = await supabase
         .from('users')
-        .select('role, is_active')
-        .eq('id', user.id)
+        .select('id, role, is_active')
+        .eq('firebase_uid', firebaseUid)
         .single();
 
-      // Auto-provision public.users row if it doesn't exist yet
+      // Auto-provision public.users row for new Firebase users
       if (!profile) {
-        const meta = user.user_metadata || {};
         const { data: newProfile, error: insertErr } = await supabase
           .from('users')
           .insert({
-            id: user.id,
-            email: user.email ?? '',
-            full_name: meta.full_name || meta.name || user.email?.split('@')[0] || 'User',
-            avatar_url: meta.avatar_url || null,
+            firebase_uid: firebaseUid,
+            email: decoded.email ?? '',
+            full_name:
+              decoded.name ||
+              decoded.email?.split('@')[0] ||
+              '',
+            phone: decoded.phone_number || null,
             role: 'user',
           })
-          .select('role, is_active')
+          .select('id, role, is_active')
           .single();
         if (!insertErr && newProfile) {
           profile = newProfile;
-          this.logger.log(`Auto-provisioned public.users row for ${user.id}`);
+          this.logger.log(`Auto-provisioned user for Firebase UID ${firebaseUid}`);
+        }
+
+        // Set the 'authenticated' custom claim for Supabase third-party auth RLS
+        if (!decoded.role) {
+          this.firebaseAdmin
+            .auth()
+            .setCustomUserClaims(firebaseUid, {
+              ...decoded,
+              role: 'authenticated',
+            })
+            .catch((err) =>
+              this.logger.warn(`Failed to set custom claims: ${err.message}`),
+            );
         }
       }
 
@@ -92,15 +104,17 @@ export class SupabaseAuthGuard implements CanActivate {
       }
 
       request.user = {
-        id: user.id,
-        email: user.email,
+        id: profile?.id,
+        email: decoded.email,
         role: profile?.role || 'user',
+        firebaseUid,
       };
       request.accessToken = token;
 
       return true;
     } catch (err) {
       if (err instanceof UnauthorizedException) throw err;
+      this.logger.error(`Auth failed: ${err.message}`);
       throw new UnauthorizedException('Authentication failed');
     }
   }

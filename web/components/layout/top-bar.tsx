@@ -31,10 +31,8 @@ export function TopBar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href={getRoleDashboard(profile?.role)} className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm shadow-primary/20">
-              <span className="text-white font-bold text-sm">EA</span>
-            </div>
-            <span className="font-bold text-foreground hidden sm:block">Expert Access</span>
+            <img src="/logo.png" alt="Loop Ex" className="w-8 h-8 rounded-lg object-contain" />
+            <span className="font-bold text-foreground hidden sm:block">Loop Ex</span>
             {isAdmin && (
               <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium bg-warning-light text-warning px-2 py-0.5 rounded-full">
                 <Shield className="w-3 h-3" /> Admin

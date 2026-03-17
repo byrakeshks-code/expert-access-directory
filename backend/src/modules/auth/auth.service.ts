@@ -10,6 +10,8 @@ export class AuthService {
 
   /**
    * Handle Supabase Auth webhook — create a public.users row when a new user signs up.
+   * @deprecated With Firebase Auth, user provisioning is handled by the auth guard.
+   * This webhook is kept for backward compatibility but may be removed in the future.
    */
   async handleAuthWebhook(payload: AuthWebhookPayloadDto) {
     if (payload.type !== 'INSERT' || payload.table !== 'users') {

@@ -24,6 +24,11 @@ export const envValidationSchema = Joi.object({
   STRIPE_SECRET_KEY: Joi.string().default(''),
   STRIPE_WEBHOOK_SECRET: Joi.string().default(''),
 
+  // Firebase Admin
+  FIREBASE_PROJECT_ID: Joi.string().required(),
+  FIREBASE_CLIENT_EMAIL: Joi.string().required(),
+  FIREBASE_PRIVATE_KEY: Joi.string().required(),
+
   // App
   PORT: Joi.number().default(3000),
   NODE_ENV: Joi.string()

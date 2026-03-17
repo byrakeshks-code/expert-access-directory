@@ -35,6 +35,8 @@ Plans/
 updates server.txt
 start server.txt
 Schema.txt
+firebase_web.txt
+*.txt
 
 # Supabase local (keep config.toml; ignore local data)
 supabase/.temp/

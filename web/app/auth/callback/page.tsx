@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth, getRoleDashboard } from '@/lib/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
+/**
+ * Auth callback page. With Firebase Auth, Google sign-in uses a popup
+ * so this page mainly acts as a fallback redirect target.
+ */
 export default function AuthCallbackPage() {
   const { user, profile, isLoading } = useAuth();
   const router = useRouter();

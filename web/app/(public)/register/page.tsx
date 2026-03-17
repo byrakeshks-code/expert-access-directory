@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       await register(email, password, fullName);
-      setSuccess(true);
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -74,9 +74,7 @@ export default function RegisterPage() {
         {/* Left panel — branding */}
         <div className="hidden lg:flex flex-1 items-center justify-center relative p-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} className="max-w-md">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-8 shadow-lg shadow-primary/25">
-              <span className="text-white font-extrabold text-xl">EA</span>
-            </div>
+            <img src="/logo.png" alt="Loop Ex" className="w-14 h-14 rounded-2xl object-contain mb-8 shadow-lg shadow-primary/25" />
             <h2 className="text-3xl font-extrabold text-foreground leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Join thousands of
               <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"> professionals</span>
@@ -105,9 +103,7 @@ export default function RegisterPage() {
         <div className="flex-1 flex items-center justify-center relative px-4 py-12">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
             <div className="text-center lg:text-left mb-8 lg:hidden">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/25">
-                <span className="text-white font-bold">EA</span>
-              </div>
+              <img src="/logo.png" alt="Loop Ex" className="w-12 h-12 rounded-xl object-contain mx-auto mb-4 shadow-lg shadow-primary/25" />
             </div>
 
             <div className="text-center lg:text-left mb-8">

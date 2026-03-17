@@ -1,12 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../../config/supabase.config';
+import { FirebaseAdminService } from '../../config/firebase-admin.config';
 import { SearchService } from '../search/search.service';
 import { AdminPaginationDto } from '../../common/dto';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     private supabaseService: SupabaseService,
+    private firebaseAdmin: FirebaseAdminService,
     private searchService: SearchService,
   ) {}
 
@@ -491,16 +495,24 @@ export class AdminService {
     timezone?: string;
     preferred_lang?: string;
   }) {
-    const { data: authData, error: authError } = await this.db.auth.admin.createUser({
-      email: body.email,
-      password: body.password,
-      email_confirm: true,
-      user_metadata: { full_name: body.full_name },
-    });
-    if (authError) throw new BadRequestException(`Auth error: ${authError.message}`);
+    let firebaseUser;
+    try {
+      firebaseUser = await this.firebaseAdmin.auth().createUser({
+        email: body.email,
+        password: body.password,
+        displayName: body.full_name,
+        emailVerified: true,
+        ...(body.phone ? { phoneNumber: body.phone } : {}),
+      });
+      await this.firebaseAdmin.auth().setCustomUserClaims(firebaseUser.uid, {
+        role: 'authenticated',
+      });
+    } catch (err: any) {
+      throw new BadRequestException(`Firebase auth error: ${err.message}`);
+    }
 
     const { data, error } = await this.db.from('users').insert({
-      id: authData.user.id,
+      firebase_uid: firebaseUser.uid,
       email: body.email,
       full_name: body.full_name,
       role: body.role || 'user',
@@ -518,8 +530,23 @@ export class AdminService {
   // --- Reset Password ---
 
   async resetPassword(userId: string, newPassword: string) {
-    const { error } = await this.db.auth.admin.updateUserById(userId, { password: newPassword });
-    if (error) throw new BadRequestException(`Reset failed: ${error.message}`);
+    const { data: user } = await this.db
+      .from('users')
+      .select('firebase_uid')
+      .eq('id', userId)
+      .single();
+
+    if (!user?.firebase_uid) {
+      throw new NotFoundException('User not found or has no Firebase account');
+    }
+
+    try {
+      await this.firebaseAdmin.auth().updateUser(user.firebase_uid, {
+        password: newPassword,
+      });
+    } catch (err: any) {
+      throw new BadRequestException(`Reset failed: ${err.message}`);
+    }
     return { success: true, message: 'Password reset successfully' };
   }
 
@@ -545,20 +572,25 @@ export class AdminService {
     current_tier?: string;
     verification_status?: string;
   }) {
-    // Create auth user
-    const { data: authData, error: authError } = await this.db.auth.admin.createUser({
-      email: body.email,
-      password: body.password,
-      email_confirm: true,
-      user_metadata: { full_name: body.full_name },
-    });
-    if (authError) throw new BadRequestException(`Auth error: ${authError.message}`);
-
-    const userId = authData.user.id;
+    let firebaseUser;
+    try {
+      firebaseUser = await this.firebaseAdmin.auth().createUser({
+        email: body.email,
+        password: body.password,
+        displayName: body.full_name,
+        emailVerified: true,
+        ...(body.phone ? { phoneNumber: body.phone } : {}),
+      });
+      await this.firebaseAdmin.auth().setCustomUserClaims(firebaseUser.uid, {
+        role: 'authenticated',
+      });
+    } catch (err: any) {
+      throw new BadRequestException(`Firebase auth error: ${err.message}`);
+    }
 
     // Create public.users record
-    await this.db.from('users').insert({
-      id: userId,
+    const { data: userRow } = await this.db.from('users').insert({
+      firebase_uid: firebaseUser.uid,
       email: body.email,
       full_name: body.full_name,
       role: 'expert',
@@ -567,7 +599,9 @@ export class AdminService {
       timezone: 'Asia/Kolkata',
       preferred_lang: 'en',
       is_active: true,
-    });
+    }).select('id').single();
+
+    const userId = userRow!.id;
 
     // Create expert profile
     const { data, error } = await this.db.from('experts').insert({

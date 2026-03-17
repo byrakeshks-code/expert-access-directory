@@ -15,16 +15,16 @@ const footerLinks = [
     title: 'Support',
     links: [
       { label: 'Help Center', href: '#' },
-      { label: 'Contact Us', href: '#' },
+      { label: 'Contact Us', href: '/contact' },
       { label: 'FAQ', href: '#' },
     ],
   },
   {
     title: 'Legal',
     links: [
-      { label: 'Terms of Service', href: '#' },
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Refund Policy', href: '#' },
+      { label: 'Terms of Service', href: '/terms' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Refund Policy', href: '/refund-policy' },
     ],
   },
 ];
@@ -37,10 +37,8 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-bold text-sm">EA</span>
-              </div>
-              <span className="font-bold text-foreground">Expert Access</span>
+              <img src="/logo.png" alt="Loop Ex" className="w-8 h-8 rounded-lg object-contain" />
+              <span className="font-bold text-foreground">Loop Ex</span>
             </div>
             <p className="text-sm text-muted leading-relaxed">
               Find the right expert for your query. Verified professionals, secure payments, guaranteed responses.
@@ -69,7 +67,7 @@ export function Footer() {
 
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-sm text-subtle">
-            &copy; {new Date().getFullYear()} Expert Access Directory. All rights reserved.
+            &copy; {new Date().getFullYear()} Loop Ex. All rights reserved.
           </p>
         </div>
       </div>

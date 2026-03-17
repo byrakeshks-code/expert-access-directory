@@ -30,7 +30,7 @@ export default function ExpertRegisterPage() {
     setIsLoading(true);
     try {
       await register(email, password, fullName);
-      setSuccess(true);
+      router.push('/expert/apply');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

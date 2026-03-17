@@ -6,6 +6,7 @@ import { ArrowLeft, Send, User, CreditCard, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { createPaymentOrder, openRazorpayCheckout, verifyPayment } from '@/lib/payment';
 import { formatFee, cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ const fadeUp = {
 export default function NewRequestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const expertId = searchParams.get('expert_id');
 
   const [expert, setExpert] = useState<ExpertInfo | null>(null);
@@ -93,20 +94,27 @@ export default function NewRequestPage() {
         return;
       }
 
-      const payment = await api.post<any>('/payments/access/create-order', {
-        expert_id: expert.id,
-      });
+      const order = await createPaymentOrder(expert.id);
 
-      const paymentId = payment?.payment_id;
-
-      if (!paymentId) {
+      if (!order?.payment_id) {
         setError('Failed to initiate payment. Please try again.');
         return;
       }
 
-      if (!payment.demo && payment.client_data) {
-        setError('Real payment gateway integration coming soon. Contact admin.');
-        return;
+      let paymentId = order.payment_id;
+
+      if (!order.demo && order.client_data) {
+        const { razorpay_payment_id, razorpay_signature } = await openRazorpayCheckout(
+          order,
+          profile?.email || '',
+          profile?.full_name || '',
+        );
+
+        await verifyPayment(
+          order.client_data.order_id || order.order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+        );
       }
 
       await api.post('/requests', {
@@ -118,7 +126,11 @@ export default function NewRequestPage() {
 
       router.push('/requests');
     } catch (err: any) {
-      setError(err.message || 'Failed to create request. Please try again.');
+      if (err.message === 'Payment cancelled') {
+        setError('Payment was cancelled. You can try again.');
+      } else {
+        setError(err.message || 'Failed to create request. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }

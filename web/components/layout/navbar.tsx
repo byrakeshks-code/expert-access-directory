@@ -18,10 +18,8 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">EA</span>
-            </div>
-            <span className="font-bold text-foreground hidden sm:block">Expert Access</span>
+            <img src="/logo.png" alt="Loop Ex" className="w-8 h-8 rounded-lg object-contain" />
+            <span className="font-bold text-foreground hidden sm:block">Loop Ex</span>
           </Link>
 
           {/* Desktop nav */}
