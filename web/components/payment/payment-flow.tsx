@@ -44,7 +44,7 @@ export function PaymentFlow({ expert, onClose, onSuccess }: PaymentFlowProps) {
     setIsProcessing(true);
     try {
       const order = await createPaymentOrder(expert.id);
-      if (order.gateway === 'razorpay' && order.razorpay_order_id) {
+      if (order.gateway === 'razorpay' && order.client_data?.order_id) {
         const result = await openRazorpayCheckout(
           order,
           profile?.email || '',
