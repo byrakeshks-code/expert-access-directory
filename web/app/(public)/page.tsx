@@ -176,7 +176,7 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
+              transition={{ duration: 0.7, ease: 'easeOut' as const }}
             >
               <span className="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-primary bg-primary-light/80 backdrop-blur-sm rounded-full mb-8 border border-primary/10">
                 <Sparkles className="w-3.5 h-3.5" />

@@ -13,7 +13,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      transition={{ duration: 0.3, ease: 'easeOut' as const }}
       className={className}
     >
       {children}
@@ -57,7 +57,7 @@ export function StaggerItem({ children, className }: { children: React.ReactNode
     <motion.div
       variants={{
         hidden: { opacity: 0, y: 12 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
       }}
       className={className}
     >
