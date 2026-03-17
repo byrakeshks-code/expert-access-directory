@@ -34,7 +34,7 @@ const stagger = {
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } },
 };
 
 export default function NewRequestPage() {
@@ -238,7 +238,7 @@ export default function NewRequestPage() {
             key="form"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            transition={{ duration: 0.35, ease: 'easeOut' as const }}
             className="bg-surface-elevated border border-border rounded-2xl p-6"
           >
             <div className="space-y-4">
@@ -291,7 +291,7 @@ export default function NewRequestPage() {
             key="confirm"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            transition={{ duration: 0.35, ease: 'easeOut' as const }}
             className="bg-surface-elevated border border-border rounded-2xl p-6"
           >
             <h3 className="text-sm font-semibold text-foreground mb-4">Confirm Your Request</h3>
