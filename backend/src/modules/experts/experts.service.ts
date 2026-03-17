@@ -113,6 +113,7 @@ export class ExpertsService {
         `)
         .eq('id', expertId)
         .eq('verification_status', 'verified')
+        .eq('is_available', true)
         .single();
 
       if (error || !data) {

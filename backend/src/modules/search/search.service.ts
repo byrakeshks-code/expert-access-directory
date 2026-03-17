@@ -282,6 +282,8 @@ export class SearchService implements OnModuleInit {
       qb = qb.contains('tags', [dto.tag.toLowerCase()]);
     }
 
+    qb = qb.eq('is_available', true);
+
     // Sort
     switch (dto.sort) {
       case SortOption.FEE_ASC:

@@ -480,7 +480,7 @@ SELECT
 FROM public.experts e
 JOIN public.users u ON u.id = e.user_id
 LEFT JOIN public.subscription_tiers st ON st.id = e.current_tier
-WHERE e.verification_status = 'verified';
+WHERE e.verification_status = 'verified' AND e.is_available = TRUE;
 
 -- ============================================================
 -- HELPER: Auto-update updated_at trigger
