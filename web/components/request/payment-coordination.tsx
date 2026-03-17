@@ -74,7 +74,7 @@ export function PaymentCoordination({
   isExpertView,
   onStatusChange,
 }: PaymentCoordinationProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMsg, setNewMsg] = useState('');
@@ -382,7 +382,7 @@ export function PaymentCoordination({
               return <div key={key}>{renderConfirmationMessage(msg, <CheckCircle2 className="w-3 h-3" />, 'bg-success-light text-success')}</div>;
             }
 
-            const isMe = msg.sender_id === user?.id;
+            const isMe = msg.sender_id === profile?.id;
             return (
               <div key={key} className={cn('flex gap-2', isMe ? 'flex-row-reverse' : '')}>
                 <Avatar
