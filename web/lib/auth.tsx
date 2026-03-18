@@ -165,8 +165,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch { /* ignore clear errors */ }
 
     try {
+      // Visible reCAPTCHA: container must be a real, visible div so recaptcha__en.js doesn't
+      // access a null element (Cannot read properties of null (reading 'style')).
       recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, containerId, {
-        size: 'invisible',
+        size: 'normal',
+        callback: () => {},
+        'expired-callback': () => {
+          recaptchaVerifierRef.current = null;
+        },
       });
     } catch (err) {
       console.warn('Failed to create RecaptchaVerifier:', err);
@@ -175,18 +181,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithPhone = useCallback(async (phone: string) => {
-    // Auto-initialize reCAPTCHA if not ready
+    // Must match the container id used on the login page (imperative mount)
+    const containerId = 'recaptcha-container-phone';
+    const el = document.getElementById(containerId);
+    if (!el) {
+      throw new Error('Security check could not load. Please refresh the page.');
+    }
     if (!recaptchaVerifierRef.current) {
-      const el = document.getElementById('recaptcha-container');
-      if (el) {
-        try {
-          recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
-            size: 'invisible',
-          });
-        } catch {
-          throw new Error('Could not initialize phone verification. Please refresh the page.');
-        }
-      } else {
+      try {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(firebaseAuth, containerId, {
+          size: 'normal',
+          callback: () => {},
+          'expired-callback': () => {
+            recaptchaVerifierRef.current = null;
+          },
+        });
+      } catch {
         throw new Error('Could not initialize phone verification. Please refresh the page.');
       }
     }
@@ -198,7 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       confirmationResultRef.current = result;
     } catch (err: any) {
-      // Reset reCAPTCHA on failure so it can be re-created
       try { recaptchaVerifierRef.current?.clear(); } catch { /* ignore */ }
       recaptchaVerifierRef.current = null;
       throw new Error(firebaseErrorMessage(err.code));
@@ -225,12 +234,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       );
       await updateProfile(newUser, { displayName: fullName });
-      // Force token refresh to include the updated displayName
-      await newUser.getIdToken(true);
+      // Force token refresh so the ID token includes displayName for backend auto-provision
+      const token = await newUser.getIdToken(true);
+      await fetchProfile(token);
     } catch (err: any) {
       throw new Error(firebaseErrorMessage(err.code));
     }
-  }, []);
+  }, [fetchProfile]);
 
   const logout = useCallback(async () => {
     await firebaseSignOut(firebaseAuth);
@@ -332,6 +342,9 @@ function firebaseErrorMessage(code: string): string {
       return 'Invalid OTP code. Please try again.';
     case 'auth/code-expired':
       return 'OTP has expired. Please request a new one.';
+    case 'auth/invalid-app-credential':
+    case 'auth/captcha-check-failed':
+      return 'Security check failed. Please try again or use another sign-in method.';
     case 'auth/popup-closed-by-user':
       return 'Sign-in popup was closed';
     case 'auth/network-request-failed':

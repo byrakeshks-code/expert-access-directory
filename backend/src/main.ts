@@ -11,9 +11,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Global prefix
+  // Global prefix (exclude GET / so root returns service info)
   const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
-  app.setGlobalPrefix(apiPrefix);
+  app.setGlobalPrefix(apiPrefix, { exclude: ['/'] });
 
   // Body size limits
   app.use(json({ limit: '1mb' }));

@@ -47,6 +47,23 @@ CREATE INDEX idx_users_email ON public.users(email);
 CREATE INDEX idx_users_active ON public.users(is_active) WHERE is_active = TRUE;
 
 -- ============================================================
+-- 1B. EMAIL SIGNUP OTP (pending verification before account creation)
+-- ============================================================
+
+CREATE TABLE public.email_signup_otp (
+    email                   TEXT PRIMARY KEY,
+    full_name               TEXT NOT NULL,
+    otp_hash                TEXT NOT NULL,
+    expires_at              TIMESTAMPTZ NOT NULL,
+    failed_attempts         INT NOT NULL DEFAULT 0,
+    resend_count            INT NOT NULL DEFAULT 0,
+    rate_limit_window_start TIMESTAMPTZ,
+    created_at              TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_email_signup_otp_expires_at ON public.email_signup_otp(expires_at);
+
+-- ============================================================
 -- 2. EXPERT PROFILES
 -- ============================================================
 

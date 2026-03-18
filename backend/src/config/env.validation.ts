@@ -10,6 +10,7 @@ export const envValidationSchema = Joi.object({
   // Redis
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().default(6379),
+  REDIS_PASSWORD: Joi.string().default(''),
 
   // Meilisearch
   MEILISEARCH_HOST: Joi.string().default('http://localhost:7700'),
@@ -37,7 +38,12 @@ export const envValidationSchema = Joi.object({
   API_PREFIX: Joi.string().default('api/v1'),
   CORS_ORIGINS: Joi.string().default('http://localhost:3001'),
 
-  // Email
+  // Email (Gmail SMTP for signup OTP)
   RESEND_API_KEY: Joi.string().default(''),
   EMAIL_FROM: Joi.string().default('noreply@example.com'),
+  EMAIL_SMTP_HOST: Joi.string().default('smtp.gmail.com'),
+  EMAIL_SMTP_PORT: Joi.number().default(587),
+  EMAIL_SMTP_SECURE: Joi.string().valid('true', 'false').default('false'),
+  EMAIL_SMTP_USER: Joi.string().default(''),
+  EMAIL_SMTP_APP_PASSWORD: Joi.string().default(''),
 });

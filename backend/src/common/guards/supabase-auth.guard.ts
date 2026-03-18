@@ -66,21 +66,26 @@ export class SupabaseAuthGuard implements CanActivate {
 
       // Auto-provision public.users row for new Firebase users
       if (!profile) {
+        const fullName =
+          decoded.name ||
+          decoded.email?.split('@')[0] ||
+          'User';
         const { data: newProfile, error: insertErr } = await supabase
           .from('users')
           .insert({
             firebase_uid: firebaseUid,
             email: decoded.email ?? '',
-            full_name:
-              decoded.name ||
-              decoded.email?.split('@')[0] ||
-              '',
+            full_name: fullName,
             phone: decoded.phone_number || null,
             role: 'user',
           })
           .select('id, role, is_active')
           .single();
-        if (!insertErr && newProfile) {
+        if (insertErr) {
+          this.logger.error(`Auto-provision failed for Firebase UID ${firebaseUid}: ${insertErr.message}`);
+          throw new UnauthorizedException('Could not create user profile. Please try again.');
+        }
+        if (newProfile) {
           profile = newProfile;
           this.logger.log(`Auto-provisioned user for Firebase UID ${firebaseUid}`);
         }
@@ -103,10 +108,15 @@ export class SupabaseAuthGuard implements CanActivate {
         throw new UnauthorizedException('Account is deactivated');
       }
 
+      if (!profile?.id) {
+        this.logger.error(`No user profile for Firebase UID ${firebaseUid}`);
+        throw new UnauthorizedException('User profile not found');
+      }
+
       request.user = {
-        id: profile?.id,
+        id: profile.id,
         email: decoded.email,
-        role: profile?.role || 'user',
+        role: profile.role || 'user',
         firebaseUid,
       };
       request.accessToken = token;

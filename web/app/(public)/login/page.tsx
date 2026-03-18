@@ -33,7 +33,9 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect');
 
-  const [mode, setMode] = useState<AuthMode>('email');
+  const [mode, setMode] = useState<AuthMode>(() =>
+    searchParams.get('mode') === 'phone' ? 'phone' : 'email',
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('+91');
@@ -47,6 +49,8 @@ function LoginPageContent() {
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const phoneOtpVerifiedRef = useRef(false);
+  const recaptchaWrapperRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaContainerId = 'recaptcha-container-phone';
 
   useEffect(() => {
     if (!authLoading && user && profile) {
@@ -61,15 +65,57 @@ function LoginPageContent() {
     }
   }, [authLoading, user, profile, redirectParam, router, showProfileCompletion]);
 
+  // Mount reCAPTCHA container on document.body so React never touches it (avoids recaptcha__en.js null .style).
   useEffect(() => {
-    if (!recaptchaInitialized.current) {
-      const timer = setTimeout(() => {
-        setupRecaptcha('recaptcha-container');
-        recaptchaInitialized.current = true;
-      }, 500);
-      return () => clearTimeout(timer);
+    if (mode !== 'phone') {
+      recaptchaInitialized.current = false;
+      const existing = document.getElementById(recaptchaContainerId);
+      if (existing?.parentNode) existing.remove();
+      return;
     }
-  }, [setupRecaptcha]);
+    if (document.getElementById(recaptchaContainerId)) return;
+
+    const positionContainer = (container: HTMLElement) => {
+      const slot = recaptchaWrapperRef.current?.querySelector('#recaptcha-slot');
+      if (slot) {
+        const r = slot.getBoundingClientRect();
+        container.style.position = 'fixed';
+        container.style.top = `${r.top}px`;
+        container.style.left = `${r.left}px`;
+        container.style.width = `${r.width}px`;
+        container.style.minHeight = `${r.height}px`;
+        container.style.zIndex = '9999';
+      }
+    };
+
+    const timer = setTimeout(() => {
+      if (document.getElementById(recaptchaContainerId)) return;
+      const wrapper = recaptchaWrapperRef.current;
+      if (!wrapper) return;
+      const container = document.createElement('div');
+      container.id = recaptchaContainerId;
+      container.setAttribute('data-recaptcha-mount', 'true');
+      container.style.minHeight = '78px';
+      document.body.appendChild(container);
+      positionContainer(container);
+      const ro = new ResizeObserver(() => positionContainer(container));
+      ro.observe(wrapper);
+      (container as any)._positionCleanup = () => ro.disconnect();
+      if (!recaptchaInitialized.current) {
+        setupRecaptcha(recaptchaContainerId);
+        recaptchaInitialized.current = true;
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      const el = document.getElementById(recaptchaContainerId);
+      if (el?.parentNode) {
+        (el as any)._positionCleanup?.();
+        el.remove();
+      }
+    };
+  }, [mode, setupRecaptcha]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +319,13 @@ function LoginPageContent() {
                   ) : (
                     <form onSubmit={handlePhoneLogin} className="space-y-4">
                       <Input label="Phone Number" type="tel" placeholder="+919876543210" value={phone} onChange={(e) => setPhone(e.target.value)} leftIcon={<Phone className="w-4 h-4" />} disabled={otpSent} required />
+                      {/* Placeholder for layout; actual reCAPTCHA container is mounted on document.body to avoid React touching it */}
+                      {!otpSent && (
+                        <div ref={recaptchaWrapperRef} className="rounded-xl border border-border bg-surface p-3">
+                          <p className="text-xs font-medium text-muted mb-2">Security verification</p>
+                          <div className="min-h-[78px]" aria-live="polite" id="recaptcha-slot" />
+                        </div>
+                      )}
                       {otpSent && (
                         <Input label="OTP" type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} required />
                       )}
@@ -313,7 +366,6 @@ function LoginPageContent() {
           </motion.div>
         </div>
       </div>
-      <div id="recaptcha-container" style={{ position: 'fixed', bottom: 0, left: 0, zIndex: -1 }} />
     </PageTransition>
   );
 }

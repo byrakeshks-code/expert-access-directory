@@ -122,3 +122,24 @@ export const api = {
   upload: <T>(endpoint: string, formData: FormData) =>
     requestFormData<T>(endpoint, formData),
 };
+
+/** Email OTP for signup: send 6-digit code to email */
+export async function sendEmailOtp(email: string, fullName: string): Promise<void> {
+  await api.post('/auth/send-email-otp', { email: email.trim().toLowerCase(), fullName: fullName.trim() });
+}
+
+/** Email OTP for signup: verify code; returns verified flag and optional failedAttempts / mayResend */
+export type VerifyEmailOtpResult =
+  | { success: true; verified: true }
+  | { success: false; failedAttempts: number; mayResend?: boolean };
+
+export async function verifyEmailOtp(email: string, otp: string): Promise<VerifyEmailOtpResult> {
+  const res = await api.post<VerifyEmailOtpResult>('/auth/verify-email-otp', {
+    email: email.trim().toLowerCase(),
+    otp: otp.trim(),
+  });
+  if (res && typeof res === 'object' && 'success' in res) {
+    return res as VerifyEmailOtpResult;
+  }
+  return { success: false, failedAttempts: 0 };
+}

@@ -1,4 +1,4 @@
-version: '3.8'
+# version is obsolete in Compose V2 and is ignored
 
 services:
   api:
@@ -25,7 +25,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '127.0.0.1:6379:6379'
+      # Use 6380 on host to avoid conflict with local Redis or other projects on 6379
+      - '127.0.0.1:6380:6379'
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis_dev_secret}
     volumes:
       - redis_data:/data

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -8,31 +8,87 @@ import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input, PasswordInput } from '@/components/ui/input';
 import { PageTransition } from '@/components/shared/page-transition';
-import { Mail, Lock, User, Shield, CheckCircle, Sparkles } from 'lucide-react';
+import { sendEmailOtp, verifyEmailOtp } from '@/lib/api';
+import { Mail, Lock, User, Shield, CheckCircle, Sparkles, Phone } from 'lucide-react';
+
+const RESEND_COOLDOWN_SEC = 60;
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth();
   const router = useRouter();
 
+  const [step, setStep] = useState<'form' | 'otp'>('form');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [mayResend, setMayResend] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setIsLoading(true);
     try {
-      await register(email, password, fullName);
-      router.push('/dashboard');
+      await sendEmailOtp(email, fullName);
+      setStep('otp');
+      setResendCooldown(RESEND_COOLDOWN_SEC);
+      setFailedAttempts(0);
+      setMayResend(false);
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'Failed to send verification code');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setError('');
+    setIsLoading(true);
+    try {
+      await sendEmailOtp(email, fullName);
+      setResendCooldown(RESEND_COOLDOWN_SEC);
+      setFailedAttempts(0);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyAndRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (otp.length !== 6) { setError('Enter the 6-digit code'); return; }
+    setIsLoading(true);
+    try {
+      const result = await verifyEmailOtp(email, otp);
+      if (result.success && result.verified) {
+        await register(email, password, fullName);
+        router.push('/dashboard');
+        return;
+      }
+      const attempts = 'failedAttempts' in result ? result.failedAttempts : 0;
+      const canResend = 'mayResend' in result ? (result.mayResend ?? false) : false;
+      setFailedAttempts(attempts);
+      setMayResend(canResend);
+      setError(attempts >= 2 ? 'Wrong code. You can resend a new code or sign up with phone instead.' : 'Invalid code. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
     } finally {
       setIsLoading(false);
     }
@@ -116,13 +172,56 @@ export default function RegisterPage() {
                 <div className="mb-4 px-4 py-3 bg-error-light border border-error/20 rounded-xl text-sm text-error">{error}</div>
               )}
 
-              <form onSubmit={handleRegister} className="space-y-4">
-                <Input label="Full Name" type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} leftIcon={<User className="w-4 h-4" />} required />
-                <Input label="Email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} leftIcon={<Mail className="w-4 h-4" />} required />
-                <PasswordInput label="Password" placeholder="Minimum 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock className="w-4 h-4" />} required />
-                <PasswordInput label="Confirm Password" placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} leftIcon={<Lock className="w-4 h-4" />} required />
-                <Button type="submit" isLoading={isLoading} className="w-full">Create Account</Button>
-              </form>
+              {step === 'form' ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <Input label="Full Name" type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} leftIcon={<User className="w-4 h-4" />} required />
+                  <Input label="Email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} leftIcon={<Mail className="w-4 h-4" />} required />
+                  <PasswordInput label="Password" placeholder="Minimum 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock className="w-4 h-4" />} required />
+                  <PasswordInput label="Confirm Password" placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} leftIcon={<Lock className="w-4 h-4" />} required />
+                  <Button type="submit" isLoading={isLoading} className="w-full">Send verification code</Button>
+                </form>
+              ) : (
+                <>
+                  <p className="text-sm text-muted mb-4">
+                    We sent a 6-digit code to <strong className="text-foreground">{email}</strong>. Enter it below.
+                  </p>
+                  <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+                    <Input
+                      label="Verification code"
+                      type="text"
+                      placeholder="000000"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                      leftIcon={<Mail className="w-4 h-4" />}
+                      required
+                    />
+                    {failedAttempts > 0 && failedAttempts < 2 && (
+                      <p className="text-xs text-muted">{2 - failedAttempts} attempt{2 - failedAttempts === 1 ? '' : 's'} left</p>
+                    )}
+                    <Button type="submit" isLoading={isLoading} className="w-full">Verify and create account</Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={resendCooldown > 0 || isLoading}
+                        onClick={handleResendOtp}
+                        className="w-full"
+                      >
+                        {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
+                      </Button>
+                      {(mayResend || failedAttempts >= 2) && (
+                        <p className="text-center text-sm text-muted">
+                          Having trouble?{' '}
+                          <Link href="/login?mode=phone" className="text-primary font-semibold hover:underline inline-flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5" /> Sign up with phone instead
+                          </Link>
+                        </p>
+                      )}
+                    </div>
+                  </form>
+                </>
+              )}
 
               <div className="flex items-center gap-3 my-6">
                 <div className="flex-1 h-px bg-border" />

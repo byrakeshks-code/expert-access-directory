@@ -10,6 +10,7 @@ import { envValidationSchema } from './config/env.validation';
 import { SupabaseModule } from './config/supabase.module';
 import { FirebaseAdminModule } from './config/firebase-admin.module';
 import { AppController } from './app.controller';
+import { RootController } from './root.controller';
 import { GlobalExceptionFilter } from './common/filters';
 import { TransformInterceptor } from './common/interceptors';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
@@ -30,6 +31,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { BlockedUsersModule } from './modules/blocked-users/blocked-users.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { EmailModule } from './modules/email/email.module';
 import { JobsModule } from './jobs/jobs.module';
 
 @Module({
@@ -46,12 +48,15 @@ import { JobsModule } from './jobs/jobs.module';
 
     // Redis + BullMQ
     BullModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('REDIS_HOST'),
-          port: configService.get('REDIS_PORT'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redis: { host: string; port: number; password?: string } = {
+          host: configService.get('REDIS_HOST') ?? 'localhost',
+          port: configService.get('REDIS_PORT') ?? 6379,
+        };
+        const password = configService.get<string>('REDIS_PASSWORD');
+        if (password) redis.password = password;
+        return { redis };
+      },
       inject: [ConfigService],
     }),
 
@@ -89,9 +94,10 @@ import { JobsModule } from './jobs/jobs.module';
     BlockedUsersModule,
     AuditModule,
     AdminModule,
+    EmailModule,
     JobsModule,
   ],
-  controllers: [AppController],
+  controllers: [RootController, AppController],
   providers: [
     // Global exception filter
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
