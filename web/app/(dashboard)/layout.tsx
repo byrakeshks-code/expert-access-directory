@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, getRoleDashboard } from '@/lib/auth';
 import { TopBar } from '@/components/layout/top-bar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { Sidebar } from '@/components/layout/sidebar';
-import { Home, FileText, Bell, CreditCard, Settings } from 'lucide-react';
+import { Home, FileText, Bell, CreditCard, Settings, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+function isDefaultOrEmptyName(name: string | undefined | null): boolean {
+  if (!name || !name.trim()) return true;
+  if (name.trim().toLowerCase() === 'user') return true;
+  return false;
+}
 
 const sidebarItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -26,9 +34,33 @@ const bottomNavItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, isLoading, isAdmin, isExpert } = useAuth();
+  const { user, profile, isLoading, isAdmin, isExpert, updateUserProfile, refreshProfile } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [onboardingName, setOnboardingName] = useState('');
+  const [onboardingSaving, setOnboardingSaving] = useState(false);
+  const [onboardingError, setOnboardingError] = useState('');
+
+  const needsOnboarding = profile && isDefaultOrEmptyName(profile.full_name);
+
+  const handleOnboardingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = onboardingName.trim();
+    if (!name) {
+      setOnboardingError('Please enter your name');
+      return;
+    }
+    setOnboardingError('');
+    setOnboardingSaving(true);
+    try {
+      await updateUserProfile({ full_name: name });
+      await refreshProfile();
+    } catch (err: any) {
+      setOnboardingError(err.message || 'Failed to save');
+    } finally {
+      setOnboardingSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (isLoading) return;
@@ -56,6 +88,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user || isAdmin || isExpert) return null;
+
+  if (needsOnboarding) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-surface-elevated p-6 sm:p-8 shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Welcome!
+              </h1>
+              <p className="text-sm text-muted">What should we call you?</p>
+            </div>
+          </div>
+          <form onSubmit={handleOnboardingSubmit} className="space-y-4">
+            {onboardingError && (
+              <div className="px-4 py-3 bg-error-light border border-error/20 rounded-xl text-sm text-error">
+                {onboardingError}
+              </div>
+            )}
+            <Input
+              label="Your name"
+              type="text"
+              placeholder="e.g. John Doe"
+              value={onboardingName}
+              onChange={(e) => setOnboardingName(e.target.value)}
+              leftIcon={<User className="w-4 h-4" />}
+              autoFocus
+            />
+            <Button type="submit" isLoading={onboardingSaving} className="w-full">
+              Continue
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -1,0 +1,138 @@
+REFUND AND CANCELLATION POLICY
+Last Updated on: 18/03/2026
+
+1.	INTRODUCTION
+
+This Refund and Cancellation Policy (“Policy”) governs the refund terms applicable to users (“Users” / “Customers”) of the Loop-Ex platform (website and/or mobile application) (“Platform”) that facilitates connections between Users and independent third-party service professionals mentioned in the platform as experts (“Experts”).
+
+By using the Platform and making payment of the facilitation fee, the User agrees to be bound by this Policy.
+
+2.	NATURE OF SERVICE
+
+2.1	The Platform acts solely as an intermediary to connect Users with Experts based on the User’s requirements.
+
+2.2	The Platform does not provide the underlying expert services and does not guarantee the quality, outcome, or suitability of any Expert.
+
+2.3	A nominal facilitation fee of INR 49 (“Facilitation Fee”) is charged for enabling access to Expert details and/or initiating connection.
+
+3.	GENERAL REFUND PRINCIPLE
+
+3.1	The Facilitation Fee is non-refundable once the User has been provided access to Expert information or connection has been initiated.
+
+3.2	Refunds, if any, shall be strictly governed by the limited exceptions set out in this Policy.
+
+3.3	The burden of proof for claiming a refund lies on the User.
+
+4.	ELIGIBLE REFUND SCENARIOS
+
+Refund requests may be considered only under the following circumstances:
+
+4.1	Technical Failure Attributable to Platform
+
+A full refund may be granted if:
+•	The payment was successfully debited, but
+•	The Platform failed to provide access to Expert details or connection due to a verified technical error, and
+•	The issue is reported within 48 hours of payment.
+
+4.2	Duplicate Payment
+
+A refund may be issued where:
+•	The User has been charged more than once for the same transaction due to a system error, and
+•	Sufficient proof of duplicate payment is provided.
+
+4.3	Non-Availability of Expert
+
+A refund may be considered if:
+•	The Platform is unable to provide any relevant Expert connection within a reasonable time (typically 72 hours), and
+•	The User has not already accessed any Expert contact details.
+
+5.	NON-REFUNDABLE SCENARIOS
+
+No refund shall be granted under the following circumstances:
+
+5.1	User Dissatisfaction
+•	Dissatisfaction with the Expert’s advice, conduct, pricing, or outcome
+•	Mismatch of expectations regarding service quality
+
+5.2	User Decision
+•	Change of mind after payment
+•	Failure to contact the Expert after receiving details
+
+5.3	Incorrect Information Provided by User
+•	Inaccurate requirements leading to unsuitable Expert matching
+
+5.4	Expert-Related Issues
+•	Non-responsiveness of Expert after contact details are shared
+•	Disputes between User and Expert
+
+(Users must resolve such issues directly with the Expert. The Platform bears no liability.)
+
+5.5	Partial Usage
+•	Once any Expert contact information is accessed, the service is deemed delivered.
+
+6.	REFUND PROCESS
+
+6.1	To request a refund, the User must:
+•	Submit a request via the Platform’s designated support channel
+•	Provide transaction details, date, and reason for refund
+•	Attach supporting evidence (screenshots, payment proof, etc.)
+
+6.2	Timeline:
+•	Refund requests must be raised within 48 hours of transaction
+•	Requests submitted beyond this period may be rejected
+
+6.3	Review:
+•	The Platform reserves the right to verify claims before approval
+•	Additional information may be requested
+
+7.	MODE OF REFUND
+
+7.1	Approved refunds shall be processed to the original payment method used by the User.
+
+7.2	Refund timelines:
+•	Typically within 5–10 business days, subject to banking/payment gateway timelines
+
+8.	PLATFORM DISCLAIMERS
+
+8.1	The Platform:
+•	Does not guarantee that any Expert will respond or accept engagement
+•	Does not verify the accuracy, credentials, or legality of Expert services beyond reasonable checks
+•	Is not responsible for any advice, services, or outcomes provided by Experts
+
+8.2	The Facilitation Fee is charged solely for:
+•	Access to the Platform ecosystem
+•	Listing and connection facilitation services
+
+9.	LIMITATION OF LIABILITY
+
+9.1	To the maximum extent permitted by law:
+•	The Platform’s total liability in relation to any refund claim shall not exceed INR 49
+•	The Platform shall not be liable for any indirect, consequential, or incidental damages
+
+10.	FRAUD AND ABUSE
+
+10.1	The Platform reserves the right to:
+•	Reject refund requests suspected to be fraudulent or abusive
+•	Suspend or terminate accounts engaging in refund misuse
+
+11.	MODIFICATIONS
+
+11.1	The Platform reserves the right to amend this Policy at any time.
+
+11.2	Updated versions shall be effective upon publication on the Platform.
+
+12.	GOVERNING LAW AND DISPUTE RESOLUTION
+
+12.1	This Policy shall be governed by the laws of India.
+
+12.2	Any disputes shall be subject to the exclusive jurisdiction of courts at Bengaluru, India alone.
+
+13.	CONTACT INFORMATION
+
+For refund requests or queries, Users may contact:
+•	Email: refund@loop-ex.com
+•	Support: info@loop-ex.com
+
+IMPORTANT NOTE TO USERS:
+
+By making payment, you acknowledge that you are paying a nominal facilitation fee for connection services only, and not for the actual expert services. Refunds are limited and subject to strict conditions as outlined above.

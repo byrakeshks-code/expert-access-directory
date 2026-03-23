@@ -37,6 +37,8 @@ start server.txt
 Schema.txt
 firebase_web.txt
 *.txt
+# Track policy page source for the web app (override *.txt above)
+!web/content/policy/*.txt
 
 # Supabase local (keep config.toml; ignore local data)
 supabase/.temp/

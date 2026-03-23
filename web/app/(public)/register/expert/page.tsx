@@ -14,7 +14,7 @@ import { Mail, Lock, User, Award, TrendingUp, DollarSign, BadgeCheck, Phone } fr
 const RESEND_COOLDOWN_SEC = 60;
 
 export default function ExpertRegisterPage() {
-  const { register, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle, updateUserProfile } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<'form' | 'otp'>('form');
@@ -79,6 +79,7 @@ export default function ExpertRegisterPage() {
       const result = await verifyEmailOtp(email, otp);
       if (result.success && result.verified) {
         await register(email, password, fullName);
+        await updateUserProfile({ full_name: fullName.trim() });
         router.push('/expert/apply');
         return;
       }
